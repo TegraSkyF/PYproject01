@@ -49,7 +49,7 @@ def detect_anomalies(df, column):
     IQR = Q3 - Q1
     lower_bound = Q1 - 1.5 * IQR
     upper_bound = Q3 + 1.5 * IQR
-    
+
     anomalies = df[(df[column] < lower_bound) | (df[column] > upper_bound)]
     return anomalies
 
@@ -68,15 +68,15 @@ def load_data(uploaded_file):
 
 def main():
     st.markdown('<h1 class="main-header">📊 Sales Data Analyzer</h1>', unsafe_allow_html=True)
-    
+
     # Sidebar navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.selectbox("Select Page", ["Dashboard", "Data Upload", "Anomaly Detection", "Help"])
-    
+
     # Initialize session state
     if 'data' not in st.session_state:
         st.session_state.data = None
-    
+
     if page == "Dashboard":
         dashboard_page()
     elif page == "Data Upload":
@@ -159,7 +159,12 @@ def dashboard_page():
             col1, col2 = st.columns(2)
 
             with col1:
-                bar_x = st.selectbox("Select Category for Bar Chart", options=categorical_cols + numeric_cols[:5], key="bar_x")
+                # Only allow categorical columns as categories for the bar chart
+                if categorical_cols:
+                    bar_x = st.selectbox("Select Category for Bar Chart", options=categorical_cols, key="bar_x")
+                else:
+                    st.warning("No categorical columns found for bar chart. Using numeric columns with binning.")
+                    bar_x = st.selectbox("Select Category for Bar Chart", options=numeric_cols[:5], key="bar_x")
             with col2:
                 bar_y = st.selectbox("Select Value for Bar Chart", options=numeric_cols, key="bar_y")
 
@@ -172,6 +177,8 @@ def dashboard_page():
                     df['bin'] = pd.cut(df[bar_x], bins=10)
                     bar_data = df.groupby('bin')[bar_y].mean().reset_index()
                     fig_bar = px.bar(bar_data, x='bin', y=bar_y, title=f"Average {bar_y} by {bar_x} Ranges")
+                    # Clean up temporary bin column
+                    df.drop(columns=['bin'], inplace=True)
 
                 st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -231,34 +238,34 @@ def dashboard_page():
 
 def upload_page():
     st.header("📁 Data Upload")
-    
+
     st.info("Upload an Excel file (.xlsx) containing your sales data.")
-    
+
     uploaded_file = st.file_uploader(
-        "Choose an Excel file", 
+        "Choose an Excel file",
         type=["xlsx", "xls"],
         accept_multiple_files=False
     )
-    
+
     if uploaded_file is not None:
         df = load_data(uploaded_file)
-        
+
         if df is not None:
             st.success("File uploaded successfully!")
-            
+
             # Display basic info about the uploaded data
             st.subheader("Uploaded Data Preview")
             st.dataframe(df.head())
-            
+
             st.subheader("Data Info")
             buffer = io.StringIO()
             df.info(buf=buffer)
             s = buffer.getvalue()
             st.text(s)
-            
+
             # Store the data in session state
             st.session_state.data = df
-            
+
             st.success("Data loaded and ready for analysis!")
         else:
             st.error("Failed to load the file. Please check the file format.")
@@ -470,82 +477,82 @@ def anomaly_detection_page():
 
 def help_page():
     st.header("ℹ️ Help & Documentation")
-    
+
     st.markdown("""
     ## 📊 Sales Data Analyzer - Help Guide
-    
+
     Welcome to the Sales Data Analyzer! This application helps you analyze sales data with key metrics, visualizations, and anomaly detection.
-    
+
     ### 📁 Supported File Format
-    
+
     The application accepts Excel files with the following characteristics:
-    
+
     - **File Extension**: `.xlsx` or `.xls`
     - **Structure**: Tabular data with rows and columns
     - **Recommended Columns** (but not required):
         - Date/Time column (for time series analysis)
         - Numeric columns (for sales figures, quantities, prices, etc.)
         - Categorical columns (for products, regions, categories, etc.)
-    
+
     ### 🚀 How to Use the Application
-    
+
     1. **Data Upload**:
         - Navigate to the "Data Upload" page
         - Click "Browse files" and select your Excel file
         - Wait for the data to load and preview
-    
+
     2. **Dashboard**:
         - View key metrics and visualizations
         - Select different columns to visualize relationships
         - Explore correlations between variables
-    
+
     3. **Anomaly Detection**:
         - Select a numeric column to analyze
         - The system will identify outliers using statistical methods
         - View anomalous records and their visualization
-    
+
     4. **Help**:
         - Access this help page anytime
-    
+
     ### 🔍 Anomaly Detection Method
-    
+
     The application uses the Interquartile Range (IQR) method to detect anomalies:
     - Calculate Q1 (25th percentile) and Q3 (75th percentile)
     - Compute IQR = Q3 - Q1
     - Define bounds: Lower = Q1 - 1.5×IQR, Upper = Q3 + 1.5×IQR
     - Values outside these bounds are considered anomalies
-    
+
     ### 💡 Tips
-    
+
     - Ensure your Excel file contains clean, organized data
     - Remove any summary rows or headers that aren't part of the data
     - Numeric columns work best for analysis and visualization
     - Check for missing values which might affect analysis
-    
+
     ### ❗ Troubleshooting
-    
+
     If you encounter issues:
     - Verify the file is a valid Excel file (.xlsx or .xls)
     - Check that the file isn't password protected
     - Ensure the file size isn't too large (recommended < 100MB)
     - Make sure the file contains tabular data
-    
+
     For additional support, contact your system administrator.
     """)
-    
+
     st.divider()
-    
+
     st.subheader("📋 Sample Data Format")
-    
+
     st.markdown("""
     Here's an example of how your data should be structured:
-    
+
     | Date       | Product    | Region | Sales | Quantity | Price |
     |------------|------------|--------|-------|----------|-------|
     | 2023-01-01 | Product A  | North  | 1000  | 10       | 100   |
     | 2023-01-02 | Product B  | South  | 1500  | 15       | 100   |
     | 2023-01-03 | Product C  | East   | 2000  | 20       | 100   |
-    
+
     Note: Column names and types can vary based on your specific data.
     """)
 
