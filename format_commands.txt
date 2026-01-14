@@ -1,0 +1,16 @@
+# Commands for checking and formatting code
+
+# Install flake8 and black
+pip install flake8 black
+
+# Check code for PEP 8 compliance using flake8
+flake8 analysis.py
+
+# Format code using black
+black analysis.py
+
+# Alternative: Check multiple files at once
+flake8 analysis.py test_analysis.py
+
+# Alternative: Format multiple files at once
+black analysis.py test_analysis.py
